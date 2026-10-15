@@ -1,0 +1,305 @@
+#include <iostream>
+
+struct SearchResult {
+	bool found;
+	int index;
+	int comparisons;
+};
+
+constexpr int MAX_SIZE = 100000;
+constexpr int NUMBER_OF_SEARCHES = 1000;
+
+SearchResult linearSearch(const int a[], int n, int k) {
+	int c = 0;
+
+	for (int i = 0; i < n; ++i) {
+		++c;
+		if (a[i] == k) {
+			return {true, i, c};
+		}
+	}
+
+	return {false, -1, c};
+}
+
+SearchResult binarySearch(const int a[], int n, int k) {
+	int l = 0;
+	int r = n - 1;
+	int c = 0;
+
+	while (l <= r) {
+		const int m = l + (r - l) / 2;
+		++c;
+
+		if (a[m] == k) {
+			return {true, m, c};
+		}
+		if (a[m] < k) {
+			l = m + 1;
+		} else {
+			r = m - 1;
+		}
+	}
+
+	return {false, -1, c};
+}
+
+void checkResult(const char* s,
+				 SearchResult actual,
+				 bool expectedFound,
+				 int expectedIndex,
+				 int expectedComparisons,
+				 int& e) {
+	const bool passed = actual.found == expectedFound &&
+						actual.comparisons == expectedComparisons &&
+						(!expectedFound || actual.index == expectedIndex);
+
+	if (passed) {
+		std::cout << "УСПІШНО | " << s
+				  << " | порівнянь: " << actual.comparisons;
+		if (actual.found) {
+			std::cout << " | індекс: " << actual.index;
+		} else {
+			std::cout << " | не знайдено";
+		}
+		std::cout << '\n';
+		return;
+	}
+
+	++e;
+	std::cout << "ПОМИЛКА | " << s << '\n'
+			  << "  очікувалось: знайдено=" << (expectedFound ? "так" : "ні")
+			  << ", індекс=" << expectedIndex
+			  << ", порівнянь=" << expectedComparisons << '\n'
+			  << "  отримано:    знайдено=" << (actual.found ? "так" : "ні")
+			  << ", індекс=" << actual.index
+			  << ", порівнянь=" << actual.comparisons << '\n';
+}
+
+void runBothSearchTest(const char* s,
+					   const int a[],
+					   int n,
+					   int k,
+					   int expectedIndex,
+					   int& e) {
+	const SearchResult linearResult = linearSearch(a, n, k);
+	const SearchResult binaryResult = binarySearch(a, n, k);
+	const bool passed = linearResult.index == expectedIndex &&
+						binaryResult.index == expectedIndex;
+
+	if (passed) {
+		std::cout << "УСПІШНО | " << s
+				  << " | індекс: " << expectedIndex
+				  << " | прямий: " << linearResult.comparisons
+				  << " порівн. | бінарний: " << binaryResult.comparisons
+				  << " порівн.\n";
+		return;
+	}
+
+	++e;
+	std::cout << "ПОМИЛКА | " << s
+			  << " | очікуваний індекс: " << expectedIndex
+			  << " | прямий: " << linearResult.index
+			  << " | бінарний: " << binaryResult.index << '\n';
+}
+
+void runBasicTests(int& e) {
+	std::cout << "АВТОТЕСТИ\n\n";
+	std::cout << "-- Завдання 1. Прямий пошук: масив 4, 9, 2, 7 --\n";
+	{
+		int a[4] = {4, 9, 2, 7};
+		checkResult("Прямий: ключ 4 (перший елемент)",
+					linearSearch(a, 4, 4), true, 0, 1, e);
+		checkResult("Прямий: ключ 7 (останній елемент)",
+					linearSearch(a, 4, 7), true, 3, 4, e);
+		checkResult("Прямий: ключ 100 (відсутній)",
+					linearSearch(a, 4, 100), false, -1, 4, e);
+	}
+
+	std::cout << "\n-- Завдання 2. Бінарний пошук: особливі випадки --\n";
+	{
+		int a[7] = {2, 5, 8, 11, 14, 17, 20};
+		int u[1] = {8};
+		checkResult("Бінарний: порожній масив",
+					binarySearch(a, 0, 11), false, -1, 0, e);
+		checkResult("Бінарний: один елемент {8}, ключ 8",
+					binarySearch(u, 1, 8), true, 0, 1, e);
+		checkResult("Бінарний: один елемент {8}, ключ 3",
+					binarySearch(u, 1, 3), false, -1, 1, e);
+		checkResult("Бінарний: перший (ключ 2)",
+					binarySearch(a, 7, 2), true, 0, 3, e);
+		checkResult("Бінарний: останній (ключ 20)",
+					binarySearch(a, 7, 20), true, 6, 3, e);
+		checkResult("Бінарний: середній (ключ 11)",
+					binarySearch(a, 7, 11), true, 3, 1, e);
+		checkResult("Бінарний: відсутній (ключ 9)",
+					binarySearch(a, 7, 9), false, -1, 3, e);
+	}
+
+	std::cout << "\n-- Завдання 3. Задані тести (обидва алгоритми) --\n";
+	{
+		int a[7] = {2, 5, 8, 11, 14, 17, 20};
+		int u[1] = {8};
+		runBothSearchTest("Порожній масив, ключ 5", a, 0, 5, -1, e);
+		runBothSearchTest("{8}, ключ 8", u, 1, 8, 0, e);
+		runBothSearchTest("{8}, ключ 3", u, 1, 3, -1, e);
+		runBothSearchTest("2..20, ключ 2 (перший)", a, 7, 2, 0, e);
+		runBothSearchTest("2..20, ключ 11 (середній)", a, 7, 11, 3, e);
+		runBothSearchTest("2..20, ключ 20 (останній)", a, 7, 20, 6, e);
+		runBothSearchTest("2..20, ключ 9 (відсутній)", a, 7, 9, -1, e);
+		runBothSearchTest("2..20, ключ -4 (менший за всі)", a, 7, -4, -1, e);
+		runBothSearchTest("2..20, ключ 100 (більший за всі)", a, 7, 100, -1, e);
+	}
+
+	std::cout << "\n-- Завдання 3. Власні тести (обидва алгоритми) --\n";
+	{
+		int a[7] = {3, 9, 12, 27, 30, 41, 55};
+		int v[2] = {4, 6};
+		runBothSearchTest("3..55, ключ 30", a, 7, 30, 4, e);
+		runBothSearchTest("3..55, ключ 1 (відсутній)", a, 7, 1, -1, e);
+		runBothSearchTest("3..55, ключ 28 (відсутній між)", a, 7, 28, -1, e);
+		runBothSearchTest("{4, 6}, ключ 6", v, 2, 6, 1, e);
+	}
+}
+
+void runVariantFour() {
+	int a[7] = {40, 16, 7, 24, 33, 10, 2};
+	int s[7] = {2, 7, 10, 16, 24, 33, 40};
+	int k[3] = {24, 2, 41};
+
+	std::cout << "\n========== ВАРІАНТ 4 ==========\n"
+			  << "Початковий масив: 40, 16, 7, 24, 33, 10, 2\n"
+			  << "Впорядкований:    2, 7, 10, 16, 24, 33, 40\n"
+			  << "ключ | прямий (початковий) | бінарний (впорядкований)\n";
+
+	for (int i = 0; i < 3; ++i) {
+		const SearchResult linearResult = linearSearch(a, 7, k[i]);
+		const SearchResult binaryResult = binarySearch(s, 7, k[i]);
+		std::cout << k[i] << " | ";
+		if (linearResult.found) {
+			std::cout << "індекс " << linearResult.index;
+		} else {
+			std::cout << "немає";
+		}
+		std::cout << ", порівн. " << linearResult.comparisons << " | ";
+		if (binaryResult.found) {
+			std::cout << "індекс " << binaryResult.index;
+		} else {
+			std::cout << "немає";
+		}
+		std::cout << ", порівн. " << binaryResult.comparisons << '\n';
+	}
+}
+
+void printComparisonCounts(int b[], const int z[], int numberOfSizes) {
+	std::cout << "\n========== ЗАВДАННЯ 4. КІЛЬКІСТЬ ПОРІВНЯНЬ ==========\n"
+			  << "Порівняння рахуються за перевірками рівності ключа.\n"
+			  << "     n | сценарій          | прямий | бінарний\n"
+			  << "-------+-------------------+--------+---------\n";
+
+	for (int j = 0; j < numberOfSizes; ++j) {
+		const int n = z[j];
+		for (int i = 0; i < n; ++i) {
+			b[i] = i;
+		}
+
+		for (int x = 0; x < 3; ++x) {
+			const int k = x == 0 ? 0 : (x == 1 ? n - 1 : n);
+			const SearchResult linearResult = linearSearch(b, n, k);
+			const SearchResult binaryResult = binarySearch(b, n, k);
+
+			std::cout << n << " | ";
+			if (x == 0) {
+				std::cout << "A (ключ 0)        | ";
+			} else if (x == 1) {
+				std::cout << "B (ключ n-1)      | ";
+			} else {
+				std::cout << "C (ключ n)        | ";
+			}
+			std::cout << linearResult.comparisons << " | "
+					  << binaryResult.comparisons << '\n';
+		}
+	}
+}
+
+void printAverageComparisons(int b[], const int z[], int numberOfSizes) {
+	std::cout << "\n========== ЗАВДАННЯ 5. СЕРЕДНІ ЗНАЧЕННЯ (1000 пошуків) ==========\n"
+			  << "     n | прямий (середнє) | бінарний (середнє)\n"
+			  << "-------+------------------+-------------------\n";
+
+	for (int j = 0; j < numberOfSizes; ++j) {
+		const int n = z[j];
+		for (int i = 0; i < n; ++i) {
+			b[i] = i;
+		}
+
+		long long sl = 0;
+		long long sb = 0;
+		for (int i = 0; i < NUMBER_OF_SEARCHES; ++i) {
+			const int k = static_cast<int>((static_cast<long long>(i) * 37) % n);
+			sl += linearSearch(b, n, k).comparisons;
+			sb += binarySearch(b, n, k).comparisons;
+		}
+
+		std::cout << n << " | "
+				  << static_cast<double>(sl) / NUMBER_OF_SEARCHES << " | "
+				  << static_cast<double>(sb) / NUMBER_OF_SEARCHES << '\n';
+	}
+}
+
+void demonstrateBinarySearchRequirement() {
+	int w1[6] = {12, 3, 19, 5, 8, 1};
+	int w2[6] = {1, 3, 5, 8, 12, 19};
+
+	std::cout << "\n========== ЗАВДАННЯ 6. НЕВПОРЯДКОВАНИЙ МАСИВ ==========\n"
+			  << "Бінарний пошук гарантовано працює лише на відсортованому масиві.\n";
+
+	for (int x = 0; x < 2; ++x) {
+		int* a = x == 0 ? w1 : w2;
+		std::cout << (x == 0
+						  ? "\nМасив 12, 3, 19, 5, 8, 1 (невпорядкований):\n"
+						  : "\nМасив 1, 3, 5, 8, 12, 19 (впорядкований):\n");
+
+		for (int i = 0; i < 6; ++i) {
+			const int k = a[i];
+			const SearchResult result = binarySearch(a, 6, k);
+			const bool correct = result.found && result.index == i;
+
+			std::cout << "  ключ " << k << " (індекс " << i << "): ";
+			if (result.found) {
+				std::cout << "знайдено на індексі " << result.index;
+			} else {
+				std::cout << "не знайдено";
+			}
+			std::cout << ", порівнянь " << result.comparisons;
+			if (x == 0) {
+				std::cout << " (результат не гарантований)";
+			} else {
+				std::cout << (correct ? " - правильно" : " - ПОМИЛКА");
+			}
+			std::cout << '\n';
+		}
+	}
+}
+
+int main() {
+	int e = 0;
+	runBasicTests(e);
+
+	if (e == 0) {
+		std::cout << "\nУсі перевірки УСПІШНІ.\n";
+	} else {
+		std::cout << "\nЄ ПОМИЛКИ (" << e << ").\n";
+	}
+
+	runVariantFour();
+
+	int b[MAX_SIZE];
+	int z[4] = {10, 100, 1000, 100000};
+	constexpr int numberOfSizes = sizeof(z) / sizeof(z[0]);
+	printComparisonCounts(b, z, numberOfSizes);
+	printAverageComparisons(b, z, numberOfSizes);
+	demonstrateBinarySearchRequirement();
+
+	return e == 0 ? 0 : 1;
+}
